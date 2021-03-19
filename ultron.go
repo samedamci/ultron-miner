@@ -7,18 +7,17 @@ import (
 	"fmt"
 	"golang.org/x/net/proxy"
 	"io/ioutil"
-	"os"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
+	"os"
 )
 
 const POOL_ADDR string = "51.15.127.80:2811"
 const MINER_NAME string = "ultronM1N3R"
-const MINER_VERSION string = "1.0.1"
+const MINER_VERSION string = "1.1"
 const RIG_ID string = "None"
-
-var USERNAME string = "samedamci"
 
 const PROXIES_FILE string = "proxies.txt"
 
@@ -27,7 +26,7 @@ var REJECTED, ACCEPTED int
 const MAX_REJECTIONS = 100
 const TIMEOUT = 1.5 // seconds
 
-func worker(dialer proxy.Dialer, thread_index int) {
+func worker(dialer proxy.Dialer, thread_index int, username string) {
 	conn, err := dialer.Dial("tcp", POOL_ADDR)
 	if err != nil {
 		return
@@ -39,7 +38,7 @@ func worker(dialer proxy.Dialer, thread_index int) {
 	}
 
 	for {
-		_, err = conn.Write([]byte("JOB," + USERNAME + ",AVR"))
+		_, err = conn.Write([]byte("JOB," + username + ",AVR"))
 		if err != nil {
 			continue
 		}
@@ -71,7 +70,7 @@ func worker(dialer proxy.Dialer, thread_index int) {
 				time.Sleep(TIMEOUT * 1000000000 * time.Nanosecond)
 				_, err = conn.Write(
 					[]byte(
-						strconv.Itoa(i) + ",," + MINER_NAME + " " + MINER_VERSION + "," + RIG_ID,
+						strconv.Itoa(i) + ",," + "Official AVR Miner v2.3," + RIG_ID,
 					),
 				)
 				if err != nil {
@@ -96,8 +95,9 @@ func worker(dialer proxy.Dialer, thread_index int) {
 }
 
 func main() {
-	if len(os.Args)-1 >= 1 {
-		USERNAME = os.Args[1]
+	if len(os.Args)-1 == 0 {
+		fmt.Println("no username(s) specified")
+		return
 	}
 	proxies_bytes, err := ioutil.ReadFile(PROXIES_FILE)
 	if err != nil {
@@ -108,25 +108,29 @@ func main() {
 
 	fmt.Printf(">> Miner: %s %s\n", MINER_NAME, MINER_VERSION)
 	fmt.Printf(">> Identifier: %s\n", RIG_ID)
-	fmt.Printf(">> Username: %s\n", USERNAME)
+	fmt.Printf(">> Using %d accounts\n", len(os.Args)-1)
 	fmt.Printf(">> Using %d SOCKS5 proxies\n", len(proxies))
 	fmt.Printf(">> Pool: %s\n", POOL_ADDR)
 	fmt.Println()
 	fmt.Println("initializing")
 
-	thread_index := 0
-	for i := 0; i < len(proxies); i++ {
+	for i := 0; i < len(os.Args)-1; i++ {
+		thread_index := 0
+		username := os.Args[i+1]
 		proxy_addr := proxies[i]
-		fmt.Printf("creating workers for %s proxy connection\n", proxy_addr)
 		dialer, _ := proxy.SOCKS5("tcp", proxy_addr, nil, nil)
 
-		for j := 0; j < 23; j++ {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for j := 0; j < r.Intn(3)+8; j++ {
 			thread_index++
-			go worker(dialer, thread_index)
+			go worker(dialer, thread_index, username)
 			time.Sleep(100000000 * time.Nanosecond) // 0.1 ms
 		}
+		fmt.Printf(
+			"created %d workers for %s account and %s proxy\n",
+			thread_index, username, proxy_addr,
+		)
 	}
-	fmt.Printf("created %d workers\n", thread_index)
 	fmt.Println("initialized")
 
 	for {
