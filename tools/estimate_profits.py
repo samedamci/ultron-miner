@@ -23,7 +23,7 @@ def main():
     for r in range(2):
         balances = json.loads(requests.get(f"{ADDR}/balances.json").text)
         for user in usernames:
-            current_balance = float(balances[user].split("")[0])
+            current_balance = float(balances[user].split(" ")[0])
             if r == 1:
                 earning = current_balance - last_balances[user]
                 earnings += earning
