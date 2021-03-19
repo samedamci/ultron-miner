@@ -15,6 +15,7 @@ import (
 
 const POOL_ADDR string = "51.15.127.80:2811"
 const MINER_NAME string = "ultronM1N3R"
+const MINER_VERSION string = "1.0.1"
 const RIG_ID string = "None"
 
 var USERNAME string = "samedamci"
@@ -68,7 +69,11 @@ func worker(dialer proxy.Dialer, thread_index int) {
 
 			if hash == target_bytes {
 				time.Sleep(TIMEOUT * 1000000000 * time.Nanosecond)
-				_, err = conn.Write([]byte(strconv.Itoa(i) + ",," + MINER_NAME + "," + RIG_ID))
+				_, err = conn.Write(
+					[]byte(
+						strconv.Itoa(i) + ",," + MINER_NAME + " " + MINER_VERSION + "," + RIG_ID,
+					),
+				)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -101,7 +106,7 @@ func main() {
 	}
 	proxies := strings.Split(string(bytes.Trim(proxies_bytes, "\n")), "\n")
 
-	fmt.Printf(">> Miner: %s\n", MINER_NAME)
+	fmt.Printf(">> Miner: %s %s\n", MINER_NAME, MINER_VERSION)
 	fmt.Printf(">> Identifier: %s\n", RIG_ID)
 	fmt.Printf(">> Username: %s\n", USERNAME)
 	fmt.Printf(">> Using %d SOCKS5 proxies\n", len(proxies))
